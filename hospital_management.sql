@@ -1,122 +1,182 @@
--- Create Database
-CREATE DATABASE EHIAS;
+/* =========================================================
+   HOSPITAL MANAGEMENT SYSTEM
+   DATABASE: EHIAS
+   ========================================================= */
+
+
+/* =========================================================
+   1. CREATE DATABASE
+   ========================================================= */
+
+CREATE DATABASE IF NOT EXISTS EHIAS;
+
 USE EHIAS;
 
--- CREATING DEPARTMENT TABLE
-create table departments
+
+/* =========================================================
+   2. DEPARTMENTS TABLE
+   ========================================================= */
+
+CREATE TABLE IF NOT EXISTS departments
 (
-  departmentID int auto_increment primary key,
-  name varchar(50) not null
+    departmentID INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL
 );
 
--- CREATING TABLE DOCTORS
-create table doctors
+
+/* =========================================================
+   3. DOCTORS TABLE
+   ========================================================= */
+
+CREATE TABLE IF NOT EXISTS doctors
 (
-  doctorid int auto_increment primary key,
-  name varchar(50),
-  specialization varchar(100),
-  role varchar(50),
-  departmentid int,
-  foreign key (departmentid) references departments(departmentid)
+    doctorid INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50),
+    specialization VARCHAR(100),
+    role VARCHAR(50),
+    departmentid INT,
+
+    FOREIGN KEY (departmentid)
+        REFERENCES departments(departmentID)
 );
 
--- CREATE PATIENTS
-CREATE TABLE patients (
+
+/* =========================================================
+   4. PATIENTS TABLE
+   ========================================================= */
+
+CREATE TABLE IF NOT EXISTS patients
+(
     patientid INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50),
     dateofbirth DATE,
     gender VARCHAR(1),
     phone VARCHAR(15),
-    
-    CONSTRAINT chk_gender 
+
+    CONSTRAINT chk_gender
     CHECK (gender IN ('m','f','o'))
 );
 
--- CREATE APPOINTMENT
-CREATE TABLE IF NOT EXISTS appointments (
+
+/* =========================================================
+   5. APPOINTMENTS TABLE
+   ========================================================= */
+
+CREATE TABLE IF NOT EXISTS appointments
+(
     appointmentid INT AUTO_INCREMENT PRIMARY KEY,
     patientid INT,
     doctorid INT,
     appointmenttime DATETIME,
     status VARCHAR(50),
 
-    FOREIGN KEY (patientid) REFERENCES patients(patientid),
-    FOREIGN KEY (doctorid) REFERENCES doctors(doctorid),
+    FOREIGN KEY (patientid)
+        REFERENCES patients(patientid),
+
+    FOREIGN KEY (doctorid)
+        REFERENCES doctors(doctorid),
 
     CHECK (status IN ('Scheduled','Completed','Cancelled'))
 );
 
--- PRESCRIPTION TABLE
-CREATE TABLE PRESCRIPTIONS
-( 
-PRECRIPTIONID INT auto_increment primary key,
-APPOINTMENTID INT,
-MEDICATION VARCHAR(100),
-DOSAGE VARCHAR(100),
-FOREIGN KEY  (APPOINTMENTID) REFERENCES APPOINTMENTS(appointmentid)
+
+/* =========================================================
+   6. PRESCRIPTIONS TABLE
+   ========================================================= */
+
+CREATE TABLE IF NOT EXISTS prescriptions
+(
+    prescriptionid INT AUTO_INCREMENT PRIMARY KEY,
+    appointmentid INT,
+    medication VARCHAR(100),
+    dosage VARCHAR(100),
+
+    FOREIGN KEY (appointmentid)
+        REFERENCES appointments(appointmentid)
 );
 
--- BILLS TABLE
-CREATE TABLE IF NOT EXISTS bills ( 
+
+/* =========================================================
+   7. BILLS TABLE
+   ========================================================= */
+
+CREATE TABLE IF NOT EXISTS bills
+(
     billid INT AUTO_INCREMENT PRIMARY KEY,
     appointmentid INT,
     amount DECIMAL(10,2),
-    paid TINYINT(1),
+    paid TINYINT(1) DEFAULT 0,
     billdate DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (appointmentid) REFERENCES appointments(appointmentid)
+
+    FOREIGN KEY (appointmentid)
+        REFERENCES appointments(appointmentid)
 );
 
--- LABREPORT TABLES
-CREATE TABLE LABREPORTS
-( 
- REPORTID INT auto_increment primary key,
- APPOINTMENTID INT,
- REPORTDATA TEXT,
- CREATEDAT DATETIME DEFAULT CURRENT_TIMESTAMP,
- FOREIGN KEY  (APPOINTMENTID) REFERENCES APPOINTMENTS(appointmentid)
+
+/* =========================================================
+   8. LAB REPORTS TABLE
+   ========================================================= */
+
+CREATE TABLE IF NOT EXISTS labreports
+(
+    reportid INT AUTO_INCREMENT PRIMARY KEY,
+    appointmentid INT,
+    reportdata TEXT,
+    createdat DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (appointmentid)
+        REFERENCES appointments(appointmentid)
 );
 
--- INSERTION IN DATABASE
 
--- INSERTING VALUES INTO DEPARTMENT TABLE
-SELECT * FROM HOSPITAL_DATA;
+/* =========================================================
+   9. DOCTOR CREDENTIALS TABLE
+   =========================================================
+   
+   This table was missing from your original SQL.
+   It is required by VIEW_DOCTOR_DATA procedure.
+   ========================================================= */
 
-SELECT `Departments.DepartmentID` FROM 
-HOSPITAL_DATA;
+CREATE TABLE IF NOT EXISTS doctor_credentials
+(
+    credentialid INT AUTO_INCREMENT PRIMARY KEY,
+    doctorid INT NOT NULL UNIQUE,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
 
-SELECT CONCAT(
-    'SELECT ',
-    GROUP_CONCAT(CONCAT('`', COLUMN_NAME, '`')),
-    ' FROM hospital_data'
-)
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA = 'EHIAS'
-AND TABLE_NAME = 'HOSPITAL_DATA'
-AND COLUMN_NAME LIKE 'Departments.%';
+    FOREIGN KEY (doctorid)
+        REFERENCES doctors(doctorid)
+);
+
+
+/* =========================================================
+   10. INSERT DEPARTMENTS FROM HOSPITAL_DATA
+   ========================================================= */
 
 INSERT INTO departments (departmentID, name)
-SELECT 
+SELECT
     `Departments.DepartmentID`,
     `Departments.Name`
 FROM hospital_data
 WHERE `Departments.DepartmentID` <> '';
 
+
 SELECT * FROM departments;
 
 
--- INSERTING VALUES INTO DOCTORS TABLE
-SELECT CONCAT(
-    'SELECT ',
-    GROUP_CONCAT(CONCAT('`', COLUMN_NAME, '`')),
-    ' FROM hospital_data'
-)
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA='EHIAS'
-AND TABLE_NAME='HOSPITAL_DATA'
-AND COLUMN_NAME LIKE 'Doctors.%';
+/* =========================================================
+   11. INSERT DOCTORS FROM HOSPITAL_DATA
+   ========================================================= */
 
-INSERT INTO DOCTORS (DepartmentID, DoctorID, Name, Role, Specialization)
-SELECT 
+INSERT INTO doctors
+(
+    DepartmentID,
+    DoctorID,
+    Name,
+    Role,
+    Specialization
+)
+SELECT
     `Doctors.DepartmentID`,
     `Doctors.DoctorID`,
     `Doctors.Name`,
@@ -125,280 +185,523 @@ SELECT
 FROM hospital_data
 WHERE `Doctors.DepartmentID` <> '';
 
-SELECT * FROM DOCTORS;
+
+SELECT * FROM doctors;
 
 
--- PATIENT
-SELECT CONCAT(
-    'SELECT ',
-    GROUP_CONCAT(CONCAT('`', COLUMN_NAME, '`')),
-    ' FROM hospital_data'
+/* =========================================================
+   12. INSERT PATIENTS FROM HOSPITAL_DATA
+   ========================================================= */
+
+INSERT INTO patients
+(
+    PatientID,
+    Name,
+    DateOfBirth,
+    Gender,
+    Phone
 )
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA='EHIAS'
-AND TABLE_NAME='HOSPITAL_DATA'
-AND COLUMN_NAME LIKE 'Patients.%';
-
-INSERT INTO PATIENTS (PatientID, Name, DateOfBirth, Gender, Phone)
-SELECT 
+SELECT
     `Patients.PatientID`,
     `Patients.Name`,
-    STR_TO_DATE(NULLIF(`Patients.DateOfBirth`, ''), '%d-%m-%Y'),
-    `Patients.Gender`,
+    STR_TO_DATE(
+        NULLIF(`Patients.DateOfBirth`, ''),
+        '%d-%m-%Y'
+    ),
+    LOWER(`Patients.Gender`),
     `Patients.Phone`
 FROM hospital_data
 WHERE `Patients.PatientID` <> '';
 
-SELECT * FROM PATIENTS;
+
+SELECT * FROM patients;
 
 
-SELECT CONCAT(
-'SELECT ',
-GROUP_CONCAT(CONCAT('`', COLUMN_NAME, '`')),
-' FROM HOSPITAL_DATA'
+/* =========================================================
+   13. INSERT APPOINTMENTS FROM HOSPITAL_DATA
+   ========================================================= */
+
+INSERT INTO appointments
+(
+    AppointmentID,
+    PatientID,
+    DoctorID,
+    AppointmentTime,
+    Status
 )
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE 
-TABLE_SCHEMA = 'EHIAS'  
-AND TABLE_NAME = 'hospital_data'
-AND COLUMN_NAME LIKE 'Appointments.%';
-
-INSERT INTO APPOINTMENTS
-(AppointmentID, PatientID, DoctorID, AppointmentTime, Status)
 SELECT
     h.`Appointments.AppointmentID`,
     h.`Appointments.PatientID`,
     h.`Appointments.DoctorID`,
-    STR_TO_DATE(h.`Appointments.AppointmentTime`, '%d-%m-%Y %H:%i'),
+    STR_TO_DATE(
+        h.`Appointments.AppointmentTime`,
+        '%d-%m-%Y %H:%i'
+    ),
     h.`Appointments.Status`
+FROM hospital_data h
 
-FROM HOSPITAL_DATA h
-JOIN PATIENTS p 
-ON p.PatientID = h.`Appointments.PatientID`
+JOIN patients p
+    ON p.PatientID = h.`Appointments.PatientID`
 
-JOIN DOCTORS d 
-ON d.DoctorID = h.`Appointments.DoctorID`
+JOIN doctors d
+    ON d.DoctorID = h.`Appointments.DoctorID`
 
 WHERE h.`Appointments.AppointmentID` <> '';
 
-SELECT * FROM APPOINTMENTS;
+
+SELECT * FROM appointments;
 
 
+/* =========================================================
+   14. INSERT PRESCRIPTIONS FROM HOSPITAL_DATA
+   ========================================================= */
 
--- INSERTING VALUE INTO PRESCRIPTIONS
-SELECT CONCAT(
-'SELECT ',
-GROUP_CONCAT(CONCAT('`', COLUMN_NAME, '`')),
-' FROM HOSPITAL_DATA'
+INSERT INTO prescriptions
+(
+    prescriptionid,
+    appointmentid,
+    medication,
+    dosage
 )
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE 
-TABLE_SCHEMA = 'EHIAS'
-AND TABLE_NAME = 'hospital_data'
-AND COLUMN_NAME LIKE 'Prescriptions.%';
-
-INSERT INTO PRESCRIPTIONS 
-(PRECRIPTIONID, AppointmentID, Medication, Dosage)
-
 SELECT
     h.`Prescriptions.PrescriptionID`,
     h.`Prescriptions.AppointmentID`,
     h.`Prescriptions.Medication`,
     h.`Prescriptions.Dosage`
+FROM hospital_data h
 
-FROM HOSPITAL_DATA h
-JOIN APPOINTMENTS a
-ON a.AppointmentID = h.`Prescriptions.AppointmentID`
+JOIN appointments a
+    ON a.AppointmentID =
+       h.`Prescriptions.AppointmentID`
 
 WHERE h.`Prescriptions.PrescriptionID` <> '';
 
-SHOW COLUMNS FROM PRESCRIPTIONS;
+
+SELECT * FROM prescriptions;
 
 
+/* =========================================================
+   15. INSERT LAB REPORTS FROM HOSPITAL_DATA
+   ========================================================= */
 
-SELECT CONCAT(
-'SELECT ',
-GROUP_CONCAT(CONCAT('`', COLUMN_NAME, '`')),
-' FROM HOSPITAL_DATA'
+INSERT INTO labreports
+(
+    reportid,
+    appointmentid,
+    reportdata,
+    createdat
 )
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE 
-TABLE_SCHEMA = 'EHIAS'
-AND TABLE_NAME = 'hospital_data'
-AND COLUMN_NAME LIKE 'LabReports.%';
-
-INSERT INTO LABREPORTS
-(ReportID, AppointmentID, ReportData, CreatedAt)
-
 SELECT
     h.`LabReports.ReportID`,
     h.`LabReports.AppointmentID`,
     h.`LabReports.ReportData`,
     h.`LabReports.CreatedAt`
+FROM hospital_data h
 
-FROM HOSPITAL_DATA h
-JOIN APPOINTMENTS a
-ON a.AppointmentID = h.`LabReports.AppointmentID`
+JOIN appointments a
+    ON a.AppointmentID =
+       h.`LabReports.AppointmentID`
 
 WHERE h.`LabReports.ReportID` <> '';
 
-SELECT * FROM LABREPORTS;
+
+SELECT * FROM labreports;
 
 
+/* =========================================================
+   16. INSERT BILLS FROM HOSPITAL_DATA
+   ========================================================= */
 
-SELECT CONCAT(
-'SELECT ',
-GROUP_CONCAT(CONCAT('`', COLUMN_NAME, '`')),
-' FROM HOSPITAL_DATA'
+INSERT INTO bills
+(
+    billid,
+    appointmentid,
+    amount,
+    paid,
+    billdate
 )
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE 
-TABLE_SCHEMA = 'EHIAS'
-AND TABLE_NAME = 'hospital_data'
-AND COLUMN_NAME LIKE 'Bills.%';
-
-INSERT INTO BILLS
-(BillID, AppointmentID, Amount, Paid, BillDate)
-
 SELECT
     h.`Bills.BillID`,
     h.`Bills.AppointmentID`,
     h.`Bills.Amount`,
     h.`Bills.Paid`,
     h.`Bills.BillDate`
+FROM hospital_data h
 
-FROM HOSPITAL_DATA h
-JOIN APPOINTMENTS a
-ON a.AppointmentID = h.`Bills.AppointmentID`
+JOIN appointments a
+    ON a.AppointmentID =
+       h.`Bills.AppointmentID`
 
 WHERE h.`Bills.BillID` <> '';
 
-SELECT * FROM BILLS;
+
+SELECT * FROM bills;
 
 
+/* =========================================================
+   17. CREATE DOCTOR LOGIN CREDENTIALS
+   =========================================================
 
--- POINT 4
-DROP TRIGGER IF EXISTS CHECK_NEW_APPOINMENT;
+   Demo credentials:
+
+   doctor1
+   Doctor@123
+
+   doctor2
+   Doctor@123
+
+   doctor3
+   Doctor@123
+
+   etc.
+
+   One credential is automatically created for
+   every doctor already present in the doctors table.
+   ========================================================= */
+
+INSERT INTO doctor_credentials
+(
+    doctorid,
+    username,
+    password
+)
+SELECT
+    doctorid,
+    CONCAT('doctor', doctorid),
+    'Doctor@123'
+FROM doctors
+WHERE NOT EXISTS
+(
+    SELECT 1
+    FROM doctor_credentials dc
+    WHERE dc.doctorid = doctors.doctorid
+);
+
+
+SELECT
+    credentialid,
+    doctorid,
+    username
+FROM doctor_credentials;
+
+
+/* =========================================================
+   18. INDEXES
+   ========================================================= */
+
+CREATE INDEX idx_doctors_department
+ON doctors(departmentid);
+
+CREATE INDEX idx_appointments_patient
+ON appointments(patientid);
+
+CREATE INDEX idx_appointments_doctor
+ON appointments(doctorid);
+
+CREATE INDEX idx_appointments_time
+ON appointments(appointmenttime);
+
+CREATE INDEX idx_prescriptions_appointment
+ON prescriptions(appointmentid);
+
+CREATE INDEX idx_bills_appointment
+ON bills(appointmentid);
+
+CREATE INDEX idx_labreports_appointment
+ON labreports(appointmentid);
+
+
+/* =========================================================
+   19. APPOINTMENT VALIDATION TRIGGER
+   ========================================================= */
+
+DROP TRIGGER IF EXISTS CHECK_NEW_APPOINTMENT;
 
 DELIMITER $$
 
-CREATE TRIGGER CHECK_NEW_APPOINMENT
-BEFORE INSERT ON APPOINTMENTS
+CREATE TRIGGER CHECK_NEW_APPOINTMENT
+BEFORE INSERT ON appointments
 FOR EACH ROW
-BEGIN 
+BEGIN
 
-   IF NEW.AppointmentTime < NOW() THEN 
-      SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'Error: Appointment cannot be in the past.';
-   END IF;
-   
-   IF EXISTS
-   (
-      SELECT 1 FROM APPOINTMENTS
-      WHERE DoctorID = NEW.DoctorID 
-      AND AppointmentTime = NEW.AppointmentTime
-      AND Status = 'Scheduled'
-   ) 
-   THEN 
-      SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'Error: Doctor already has an appointment at this time';
-   END IF;
+    /* Appointment cannot be in the past */
 
-END $$
+    IF NEW.appointmenttime < NOW() THEN
+
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT =
+        'Error: Appointment cannot be in the past.';
+
+    END IF;
+
+
+    /* Doctor cannot have two scheduled appointments
+       at exactly the same time */
+
+    IF EXISTS
+    (
+        SELECT 1
+        FROM appointments
+        WHERE doctorid = NEW.doctorid
+        AND appointmenttime = NEW.appointmenttime
+        AND status = 'Scheduled'
+    )
+    THEN
+
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT =
+        'Error: Doctor already has an appointment at this time.';
+
+    END IF;
+
+END$$
 
 DELIMITER ;
 
 
--- POINT 5
+/* =========================================================
+   20. DOCTOR DATA PROCEDURE
+   ========================================================= */
+
 DROP PROCEDURE IF EXISTS VIEW_DOCTOR_DATA;
 
 DELIMITER $$
 
 CREATE PROCEDURE VIEW_DOCTOR_DATA
-(IN INPUT_USERNAME VARCHAR(100), IN INPUT_PASSWORD VARCHAR(100))
-BEGIN 
-  DECLARE DOC_ROLE VARCHAR(100);
-  DECLARE DOC_DEPT INT;
-  DECLARE DOC_ID INT;
-  
-  -- CHECK CREDENTIALS OF THE DOCTOR
-  SELECT DOCTOR_ID INTO DOC_ID
-  FROM DOCTOR_CREDENTIALS 
-  WHERE USER_NAME = INPUT_USERNAME 
-  AND PASSWORD = INPUT_PASSWORD;
-  
-  -- GET ROLE AND DEPARTMENT FROM DOCTORS TABLE
-  SELECT ROLE, DEPARTMENTID
-  INTO DOC_ROLE, DOC_DEPT
-  FROM DOCTORS 
-  WHERE DOCTORID = DOC_ID;
-  
-  -- SHOW APPROPRIATE PATIENTS DATA
-  IF DOC_ROLE = 'senior' THEN
-    
-     SELECT 
-        D.DOCTORID,
-        P.PatientID,
-        P.Name,
-        P.Gender, 
-        A.AppointmentTime,
-        PR.Medication,
-        LR.ReportData
-     FROM PATIENTS P
-     JOIN APPOINTMENTS A ON A.PatientID = P.PatientID
-     JOIN DOCTORS D ON D.DoctorID = A.DoctorID
-     LEFT JOIN PRESCRIPTIONS PR ON A.AppointmentID = PR.AppointmentID
-     LEFT JOIN LABREPORTS LR ON A.AppointmentID = LR.AppointmentID
-     WHERE D.DepartmentID = DOC_DEPT;
+(
+    IN INPUT_USERNAME VARCHAR(100),
+    IN INPUT_PASSWORD VARCHAR(100)
+)
+BEGIN
 
-  ELSE
+    DECLARE DOC_ROLE VARCHAR(100);
+    DECLARE DOC_DEPT INT;
+    DECLARE DOC_ID INT;
 
-     SELECT 
-        A.DoctorID,
-        P.PatientID,
-        P.Name,
-        P.Gender, 
-        A.AppointmentTime,
-        PR.Medication,
-        LR.ReportData
-     FROM PATIENTS P
-     JOIN APPOINTMENTS A ON A.PatientID = P.PatientID
-     LEFT JOIN PRESCRIPTIONS PR ON A.AppointmentID = PR.AppointmentID
-     LEFT JOIN LABREPORTS LR ON A.AppointmentID = LR.AppointmentID
-     WHERE A.DoctorID = DOC_ID;
 
-   END IF;
+    /* =====================================================
+       CHECK DOCTOR LOGIN
+       ===================================================== */
 
-END $$
+    SELECT dc.doctorid
+    INTO DOC_ID
+
+    FROM doctor_credentials dc
+
+    WHERE dc.username = INPUT_USERNAME
+    AND dc.password = INPUT_PASSWORD
+
+    LIMIT 1;
+
+
+    /* =====================================================
+       INVALID LOGIN
+       ===================================================== */
+
+    IF DOC_ID IS NULL THEN
+
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT =
+        'Error: Invalid username or password.';
+
+    END IF;
+
+
+    /* =====================================================
+       GET DOCTOR ROLE AND DEPARTMENT
+       ===================================================== */
+
+    SELECT
+        role,
+        departmentid
+
+    INTO
+        DOC_ROLE,
+        DOC_DEPT
+
+    FROM doctors
+
+    WHERE doctorid = DOC_ID;
+
+
+    /* =====================================================
+       SENIOR DOCTOR
+       CAN VIEW PATIENTS FROM ENTIRE DEPARTMENT
+       ===================================================== */
+
+    IF LOWER(DOC_ROLE) = 'senior' THEN
+
+        SELECT
+            D.doctorid,
+            D.name AS DoctorName,
+            P.patientid,
+            P.name AS PatientName,
+            P.gender,
+            A.appointmentid,
+            A.appointmenttime,
+            A.status,
+            PR.medication,
+            PR.dosage,
+            LR.reportdata,
+            LR.createdat AS ReportCreatedAt
+
+        FROM patients P
+
+        JOIN appointments A
+            ON A.patientid = P.patientid
+
+        JOIN doctors D
+            ON D.doctorid = A.doctorid
+
+        LEFT JOIN prescriptions PR
+            ON A.appointmentid = PR.appointmentid
+
+        LEFT JOIN labreports LR
+            ON A.appointmentid = LR.appointmentid
+
+        WHERE D.departmentid = DOC_DEPT
+
+        ORDER BY A.appointmenttime DESC;
+
+
+    /* =====================================================
+       NORMAL DOCTOR
+       CAN VIEW ONLY THEIR OWN PATIENTS
+       ===================================================== */
+
+    ELSE
+
+        SELECT
+            A.doctorid,
+            D.name AS DoctorName,
+            P.patientid,
+            P.name AS PatientName,
+            P.gender,
+            A.appointmentid,
+            A.appointmenttime,
+            A.status,
+            PR.medication,
+            PR.dosage,
+            LR.reportdata,
+            LR.createdat AS ReportCreatedAt
+
+        FROM patients P
+
+        JOIN appointments A
+            ON A.patientid = P.patientid
+
+        JOIN doctors D
+            ON D.doctorid = A.doctorid
+
+        LEFT JOIN prescriptions PR
+            ON A.appointmentid = PR.appointmentid
+
+        LEFT JOIN labreports LR
+            ON A.appointmentid = LR.appointmentid
+
+        WHERE A.doctorid = DOC_ID
+
+        ORDER BY A.appointmenttime DESC;
+
+    END IF;
+
+END$$
 
 DELIMITER ;
 
 
--- POINT 6
+/* =========================================================
+   21. MONTHLY REVENUE PROCEDURE
+   ========================================================= */
+
 DROP PROCEDURE IF EXISTS SP_MONTHLYREVENUE;
 
 DELIMITER //
 
-CREATE PROCEDURE SP_MONTHLYREVENUE(IN P_YEAR INT , IN P_MONTH INT)
+CREATE PROCEDURE SP_MONTHLYREVENUE
+(
+    IN P_YEAR INT,
+    IN P_MONTH INT
+)
 BEGIN
 
- SELECT 
-    D1.Name AS Department,
-    SUM(B.Amount) AS Total_Revenue 
+    SELECT
 
- FROM BILLS B
- JOIN APPOINTMENTS A ON A.AppointmentID = B.AppointmentID
- JOIN DOCTORS D ON A.DoctorID = D.DoctorID
- JOIN DEPARTMENTS D1 ON D1.DepartmentID = D.DepartmentID
+        D1.name AS Department,
 
- WHERE MONTH(B.BillDate) = P_MONTH 
- AND YEAR(B.BillDate) = P_YEAR
+        SUM(B.amount) AS Total_Revenue
 
- GROUP BY D1.Name;
+    FROM bills B
+
+    JOIN appointments A
+        ON A.appointmentid = B.appointmentid
+
+    JOIN doctors D
+        ON A.doctorid = D.doctorid
+
+    JOIN departments D1
+        ON D1.departmentid = D.departmentid
+
+    WHERE MONTH(B.billdate) = P_MONTH
+
+    AND YEAR(B.billdate) = P_YEAR
+
+    GROUP BY D1.departmentid, D1.name
+
+    ORDER BY Total_Revenue DESC;
 
 END//
 
 DELIMITER ;
 
 
+/* =========================================================
+   22. FINAL VERIFICATION
+   ========================================================= */
 
+SELECT 'DEPARTMENTS' AS TABLE_NAME;
+SELECT * FROM departments;
+
+SELECT 'DOCTORS' AS TABLE_NAME;
+SELECT * FROM doctors;
+
+SELECT 'PATIENTS' AS TABLE_NAME;
+SELECT * FROM patients;
+
+SELECT 'APPOINTMENTS' AS TABLE_NAME;
+SELECT * FROM appointments;
+
+SELECT 'PRESCRIPTIONS' AS TABLE_NAME;
+SELECT * FROM prescriptions;
+
+SELECT 'LABREPORTS' AS TABLE_NAME;
+SELECT * FROM labreports;
+
+SELECT 'BILLS' AS TABLE_NAME;
+SELECT * FROM bills;
+
+SELECT 'DOCTOR CREDENTIALS' AS TABLE_NAME;
+SELECT credentialid, doctorid, username
+FROM doctor_credentials;
+
+
+/* =========================================================
+   23. TEST PROCEDURES
+   ========================================================= */
+
+/* Example monthly revenue:
+   Change year/month according to your data.
+*/
+
+/*
+CALL SP_MONTHLYREVENUE(2025, 1);
+*/
+
+
+/* Example doctor login:
+   Use doctor1 / Doctor@123
+*/
+
+/*
+CALL VIEW_DOCTOR_DATA('doctor1', 'Doctor@123');
+*/
