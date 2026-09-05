@@ -705,3 +705,7 @@ CALL SP_MONTHLYREVENUE(2025, 1);
 /*
 CALL VIEW_DOCTOR_DATA('doctor1', 'Doctor@123');
 */
+
+
+SELECT * FROM appointments
+WHERE appointmenttime > NOW()
